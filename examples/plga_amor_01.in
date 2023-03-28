@@ -1,0 +1,19 @@
+
+
+# ----------------- Init Section -----------------
+
+include "plga_amor_01.in.init"
+
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "plga_amor_01.data"
+
+# ----------------- Settings Section -----------------
+
+include "plga_amor_01.in.settings"
+
+
+# ----------------- Run Section -----------------
+
+include "plga_amor_01.in.run"

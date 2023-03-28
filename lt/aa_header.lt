@@ -1,0 +1,73 @@
+# Header for atomic simulations.
+
+# Production run at constant temperature and pressure.
+init_aa_prod {
+ write_once("In Init"){
+  # Simulation name. 
+  variable run string test_s01_01
+  echo            log
+  log   \$\{run\}.log
+ 
+  # Input variables.
+  variable ts     equal 2       # timestep
+  variable tf     equal 300.    # Equilibrium temperature
+  variable p      equal 1.      # Equilibrium pressure
+  variable cutoff equal 14.     # For interactions in real space. 
+  variable cl     equal 1000    # correlation length
+  variable s      equal 5       # sample interval
+  variable prod   equal 500000  # Production steps
+
+  # PBC 
+  boundary p p p
+ }
+}
+
+# Perform a scan in temperature at constant pressure.
+init_aa_temp_scan {
+ write_once("In Init"){
+  # Simulation name. 
+  variable run string test_s01_01
+  echo            log
+  log   \$\{run\}.log
+
+  # Input variables.
+  variable ts     equal 2       # timestep
+  variable ti     equal 300.    # Initial temperature
+  variable tf     equal 500.    # Final temperature
+  variable dt     equal 10      # Delta T
+  variable p      equal 1.      # equilibrium pressure
+  variable cl     equal 400     # correlation length for averaging
+  variable s      equal 5       # sample interval for averaging
+  variable ramp   equal 200000  # Steps for temperature ramp
+  variable equi   equal 500000  # Equilibration steps
+  variable prod   equal 100000  # Production steps
+
+  # PBC 
+  boundary p p p
+ }
+}
+
+# Compression of an isotropic sample at low temperature, followed by heating
+# at fixed volume. Use a /cut pair style to speed-up the calculations.
+# NOTE: an isotropic shrinking of 0.95 per step is assumed when computing the
+#       compression steps.
+init_aa_compression {
+ write("In Init"){
+ # Simulation name.
+ variable run string test_s01_01
+ echo            log
+ log   \$\{run\}.log
+
+ # Input variables.
+ variable ts     equal 2       # timestep
+ variable ti     equal 5.      # Initial temperature                                         
+ variable tf     equal 300.    # Final temperature
+ variable steps  equal 7       # Compression steps.
+ variable cl     equal 1000    # correlation length
+ variable s      equal 5       # sample interval
+ variable equi   equal 500000  # Equilibration steps
+
+ # PBC
+ boundary p p p
+ }
+}

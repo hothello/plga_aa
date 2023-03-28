@@ -1,0 +1,47 @@
+# Force field definition for the GROMOS-ATB force field.
+
+atb_cut {
+ write("In Init"){
+  
+  # Force field setup.
+  units           real
+  atom_style      full
+  bond_style      harmonic
+  angle_style     harmonic
+  dihedral_style  harmonic
+  improper_style  harmonic
+  pair_style      lj/cut/coul/cut \$\{cutoff\} 
+  special_bonds lj 0.0 0.0 0.5 coul 0.0 0.0 1.0 angle yes dihedral yes
+  
+  # Neighbour list.
+  neighbor        2.0 bin
+  neigh_modify    check yes
+ }
+}
+
+atb_long {
+ write("In Init"){
+  
+  # Force field setup.
+  units           real
+  atom_style      full
+  bond_style      harmonic
+  angle_style     harmonic
+  dihedral_style  harmonic
+  improper_style  harmonic
+  pair_style      lj/cut/coul/long 13.
+  special_bonds lj 0.0 0.0 0.5 coul 0.0 0.0 1.0 angle yes dihedral yes
+  
+  # Neighbour list.
+  neighbor        2.0 bin
+  neigh_modify    check yes
+ }
+ 
+ # Define the K-space after the DATA file is read.
+ # Needed for triclinic boxes.
+ write("In Settings"){
+  # Force field setup.
+  kspace_style    pppm 1e-4
+  
+ }
+}

@@ -1,0 +1,11 @@
+LAMMPS (2 Jun 2022)
+
+
+# ----------------- Init Section -----------------
+
+include "plga_amor_01.in.init"
+# Simulation name.
+variable run string plga_amor_01
+echo            log
+log   ${run}.log
+log   plga_amor_01.log

@@ -1,0 +1,356 @@
+# Define a series of simulation types and tasks.
+#
+# LAMMPS 2Jun22, installed packages:
+# ASPHERE CLASS2 EXTRA-DUMP FEP KSPACE MISC MOLECULE RIGID MOLC
+#
+# Example of use, eg template LT input file:
+# 
+# Input variables: copy and paste from aa_header.lt
+# write_once("In Init"){ ... }
+#
+# import aa_tasks.lt
+# import aa_atb.lt
+# forcefield = new atb_long
+# # From 1.
+# task        = default
+# # From 2.
+# run = new aa_temp_scan
+
+## 1. Tasks: physical observables to compute and to print to the LOG file.
+
+default {
+ write("In Run"){
+ 
+  # Output.
+  thermo          \$d
+  thermo_style custom step etotal evdwl ecoul elong ebond eangle edihed eimp &
+  ke pe temp press vol density cpu
+  thermo_modify flush yes
+  # Trajectory.
+  dump TRJ all dcd \$\{dcycle\} \$\{run\}.dcd
+  dump_modify TRJ unwrap yes
+ }
+}
+
+inter_long {
+ write("In Run"){
+  
+  # Physical observables.
+  compute inter           all inter kspace yes
+ 
+  # Output.
+  thermo          \$d
+  thermo_style custom step etotal evdwl ecoul elong ebond eangle edihed eimp &
+  ke pe temp press vol density c_inter cpu
+  thermo_modify flush yes
+  # Trajectory.
+  dump TRJ all dcd \$\{dcycle\} \$\{run\}.dcd
+  dump_modify TRJ unwrap yes
+ }
+}
+
+diffusion_molecule {
+  write("In Run"){
+  
+  # Physical observables.
+  compute inter           all inter kspace yes
+  
+  # Use the COM of the molecule to compute the MSD.
+  compute ac all chunk/atom molecule
+  compute  msqdis all msd/chunk ac
+  # average over all molecules.
+  variable msqdis equal ave(c_msqdis[4])
+  # Same frequency as thermo.
+  fix sum all vector \$d v_msqdis
+  variable diff equal slope(f_sum)/6./(\$d*\$\{ts\}) # Angs2/fs.
+  
+  # Output.
+  thermo          \$d
+  thermo_style custom step etotal evdwl ecoul elong ebond eangle edihed eimp &
+  ke pe temp press vol density c_inter v_diff c_inter cpu
+  thermo_modify flush yes
+  # Trajectory.
+  dump TRJ all dcd \$\{dcycle\} \$\{run\}.dcd
+  dump_modify TRJ unwrap yes
+ }
+}
+
+## 2. Simulation types.
+
+# Minimisation of a back-mapped structure.
+minimize {
+ 
+ # Generate a random seed, for Langevin thermostat.
+ include random_init.lt
+ 
+ write("In Run"){
+  
+  # Derived variables.
+  # thermo interval.
+  variable d       equal \$\{cl\}*\$s
+  # dump interval ("sample interval" frames).
+  variable dcycle  equal \$\{prod\}/\$s
+  variable tcouple equal \$\{ts\}*100
+  variable pcouple equal \$\{ts\}*1000
+ 
+  # Minimization before starting the production.
+  thermo          \$d
+  thermo_style custom step etotal evdwl ecoul elong ebond  eangle edihed eimp &
+  ke pe temp press vol density cpu
+  minimize .01 .005 1000 1000
+  reset_timestep 0
+  variable r format r1 %.0f
+  velocity all create \$\{tf\} \$r dist gaussian
+ }
+}
+
+# Production run at constant temperature and pressure.
+aa_npt {
+ 
+ # Generate a random seed, for Langevin thermostat.
+ include random_init.lt
+ 
+ write("In Run"){
+  
+  # Derived variables.
+  # thermo interval.
+  variable d       equal \$\{cl\}*\$s
+  # dump interval ("sample interval" frames).
+  variable dcycle  equal \$\{prod\}/\$s
+  variable tcouple equal \$\{ts\}*100
+  variable pcouple equal \$\{ts\}*1000
+ }
+ 
+ # Define the computes and output, based on the task.
+ co = new task
+ 
+ write("In Run"){
+  
+  # Thermalisation and relaxation, NPT ensemble.
+  timestep 	 \$\{ts\}
+  fix             NPH all nph iso \$p \$p \$\{pcouple\}
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{tf\} \$\{tf\} \$\{tcouple\} \$r
+  run    \$\{prod\}
+  unfix NPH
+  unfix TEMP
+ }
+}
+
+# Production run in the microcanonical ensemble.
+aa_nve {
+ 
+ write("In Run"){
+ 
+ # Derived variables.
+ # thermo interval.
+ variable d       equal \$\{cl\}*\$s
+ # dump interval ("sample interval" frames).
+ variable dcycle  equal \$\{prod\}/\$s
+ variable tcouple equal \$\{ts\}*100
+ variable pcouple equal \$\{ts\}*1000
+ }
+ 
+ # Define the computes and output, based on the task.
+ co = new task
+ 
+ write("In Run"){
+  
+  # Thermalisation and relaxation, microcanonical (NVE) ensemble.
+  timestep 	 \$\{ts\}
+  fix             NVE all nve
+  run    \$\{prod\}
+  unfix NVE
+ }
+}
+
+# Production run in the canonical ensemble.
+aa_nvt {
+ 
+ # Generate a random seed, for Langevin thermostat.
+ include random_init.lt
+ 
+ write("In Run"){
+ 
+ # Derived variables.
+ # thermo interval.
+ variable d       equal \$\{cl\}*\$s
+ # dump interval ("sample interval" frames).
+ variable dcycle  equal \$\{prod\}/\$s
+ variable tcouple equal \$\{ts\}*100
+ variable pcouple equal \$\{ts\}*1000
+ }
+ 
+ # Define the computes and output, based on the task.
+ co = new task
+ 
+ write("In Run"){
+  
+  # Thermalisation and relaxation, canonical (NVT) ensemble.
+  timestep 	 \$\{ts\}
+  fix             NVE all nve
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{tf\} \$\{tf\} \$\{tcouple\} \$r
+  run    \$\{prod\}
+  unfix NVE
+  unfix TEMP
+ }
+}
+
+# Perform a scan in temperature at constant pressure.
+aa_temp_scan { 
+ 
+ # Generate a random seed, for Langevin thermostat.
+ include random_init.lt
+ 
+ write("In Run"){
+ 
+ # Derived variables.
+ # thermo interval.
+ variable d       equal \$\{cl\}*\$s
+ # dump interval (1 configuration per cycle).
+ variable dcycle  equal \$\{equi\}+\$\{prod\}+\$\{ramp\}
+ variable newt    equal \$\{ti\}
+ variable tcouple equal \$\{ts\}*100
+ variable pcouple equal \$\{ts\}*1000
+ # Work out the scan direction: from low to high, or from high to low.
+ if "\$\{ti\} >= \$\{tf\}" then &
+  "variable op1 string <=" &
+  "variable op2 string -" &
+ elif "\$\{ti\} <= \$\{tf\}" &
+  "variable op1 string >=" &
+  "variable op2 string +"
+ }
+ 
+ # Define the computes and output, based on the task.
+ co = new task
+ 
+ # Loop.
+ write("In Run"){
+  
+  #### Enter the loop.
+  timestep 	 \$\{ts\}
+  fix             NPH all nph iso \$p \$p \$\{pcouple\}
+  label cycle2
+  
+  # Equilibrate.
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{newt\} \$\{newt\} \$\{tcouple\} \$r
+  run   \$\{equi\}  post no
+  
+  # Production.
+  run    \$\{prod\} post no
+  unfix TEMP
+  
+  # Exit the loop.
+  if "\$\{newt\} \$\{op1\} \$\{tf\}" then "jump SELF break"
+  
+  # Ramp the temperature.
+  variable oldt equal \$\{newt\}
+  variable newt equal \$\{oldt\}\$\{op2\}\$\{dt\}
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{oldt\} \$\{newt\} \$\{tcouple\} \$r
+  run    \$\{ramp\} post no
+  unfix TEMP
+  
+  jump SELF cycle2
+  
+  # end.
+  label break
+  unfix NPH
+ }
+}
+
+# Compression of an isotropic sample at low temperature, followed by heating
+# at fixed volume. Use a /cut pair style to speed-up the calculations.
+# NOTE: an isotropic shrinking of 0.95 per step is assumed when computing the
+#       compression steps.
+aa_compression {
+ 
+ # Generate a random seed, for Langevin thermostat.
+ include random_init.lt
+ 
+ write("In Run"){
+ 
+ # Derived variables.
+ # thermo interval.
+ variable d       equal \$\{cl\}*\$s
+ # dump interval (1 frame per cycle).
+ variable dcycle  equal \$\{equi\}
+ variable tcouple equal \$\{ts\}*100
+ variable pcouple equal \$\{ts\}*1000
+ }
+ 
+ # Define the computes and output, based on the task.
+ co = new task
+ 
+ write("In Run"){
+  
+  # 1. Shrink the cell to the target density.
+  timestep 	 \$\{ts\}
+  variable r format r1 %.0f
+  velocity        all create \$\{ti\} \$r dist gaussian
+  variable r format r1 %.0f
+  fix             NVE all nve
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{ti\} \$\{ti\} \$\{tcouple\} \$r
+  fix             SHRINK all deform 1 x scale .95 y scale .95 z scale .95 units box remap x
+  # Begin the compression.
+  label    cycle1
+  variable i loop \$\{steps\}
+    print "*** Shrinking step \$i/\$\{steps\} ***"
+    run    \$\{equi\}
+    next   i
+  jump SELF cycle1
+  variable i delete
+  
+  # 2. Heat to the target temperature.
+  unfix SHRINK
+  unfix TEMP
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{ti\} \$\{tf\} \$\{tcouple\} \$r
+  run    \$\{equi\}
+  unfix TEMP
+  variable r format r1 %.0f
+  fix             TEMP all langevin \$\{tf\} \$\{tf\} \$\{tcouple\} \$r
+  run    \$\{equi\}
+  unfix TEMP
+  unfix NVE
+ }
+}
+
+# Rerun a DCD file from the first frame.
+aa_rerun {
+ 
+ write("In Run"){
+ 
+ # Derived variables.
+ # thermo interval.
+ variable d       equal 1
+ # dump interval ("sample interval" frames).
+ variable dcycle  equal \$\{prod\}/\$s
+ variable tcouple equal \$\{ts\}*100
+ variable pcouple equal \$\{ts\}*1000
+ }
+ 
+ # Define the computes and output, based on the task.
+ co = new task
+ 
+ write("In Run"){
+  
+  # Rerun.
+  undump TRJ
+  rerun \$\{rst\}.dcd dump x y z box yes format &
+      molfile dcd /usr/local/lib/vmd/plugins/LINUXAMD64/molfile/
+ }
+}
+
+# Save the current status (multiple choices).
+aa_save {
+ write("In Run"){
+  
+  # Save the current status (multiple choices).
+  write_data      \$\{run\}.last.data
+  write_restart   \$\{run\}.last.restart
+ }
+}

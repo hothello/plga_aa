@@ -1,0 +1,33 @@
+
+# Derived variables.
+# thermo interval.
+variable d       equal ${cl}*$s
+# dump interval ("sample interval" frames).
+variable dcycle  equal ${prod}/$s
+variable tcouple equal ${ts}*100
+variable pcouple equal ${ts}*1000
+
+# Output.
+thermo          $d
+thermo_style custom step etotal evdwl ecoul elong ebond eangle edihed eimp &
+ke pe temp press vol density cpu
+thermo_modify flush yes
+# Trajectory.
+dump TRJ all dcd ${dcycle} ${run}.dcd
+dump_modify TRJ unwrap yes
+
+fix NPT all npt temp ${ti} ${ti} ${tcouple} aniso $p $p ${pcouple}
+label    cycle1
+variable i loop ${steps}
+print "*** Shrinking step $i/${steps} ***"
+run    ${equi}
+next   i
+jump SELF cycle1
+variable i delete
+unfix NPT
+fix NPT all npt temp ${ti} ${tf} ${tcouple} aniso $p $p ${pcouple}
+run    ${equi}
+
+# Save the current status (multiple choices).
+write_data      ${run}.last.data
+write_restart   ${run}.last.restart

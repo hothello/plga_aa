@@ -1,0 +1,52 @@
+
+# Derived variables.
+# thermo interval.
+variable d       equal ${cl}*$s
+# dump interval (1 frame per cycle).
+variable dcycle  equal ${equi}
+variable tcouple equal ${ts}*100
+variable pcouple equal ${ts}*1000
+
+# Output.
+thermo          $d
+thermo_style custom step etotal evdwl ecoul elong ebond eangle edihed eimp &
+ke pe temp press vol density cpu
+thermo_modify flush yes
+# Trajectory.
+dump TRJ all dcd ${dcycle} ${run}.dcd
+dump_modify TRJ unwrap yes
+
+# 1. Shrink the cell to the target density.
+timestep 	 ${ts}
+variable r format r1 %.0f
+velocity        all create ${ti} $r dist gaussian
+variable r format r1 %.0f
+fix             NVE all nve
+variable r format r1 %.0f
+fix             TEMP all langevin ${ti} ${ti} ${tcouple} $r
+fix             SHRINK all deform 1 x scale .95 y scale .95 z scale .95 units box remap x
+# Begin the compression.
+label    cycle1
+variable i loop ${steps}
+print "*** Shrinking step $i/${steps} ***"
+run    ${equi}
+next   i
+jump SELF cycle1
+variable i delete
+
+# 2. Heat to the target temperature.
+unfix SHRINK
+unfix TEMP
+variable r format r1 %.0f
+fix             TEMP all langevin ${ti} ${tf} ${tcouple} $r
+run    ${equi}
+unfix TEMP
+variable r format r1 %.0f
+fix             TEMP all langevin ${tf} ${tf} ${tcouple} $r
+run    ${equi}
+unfix TEMP
+unfix NVE
+
+# Save the current status (multiple choices).
+write_data      ${run}.last.data
+write_restart   ${run}.last.restart

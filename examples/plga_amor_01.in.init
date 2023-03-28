@@ -1,0 +1,40 @@
+# Simulation name. 
+variable run string plga_amor_01
+echo            log
+log   ${run}.log
+
+# Input variables.
+variable ts     equal 2       # timestep
+variable steps  equal 49      # Compression steps
+variable ti     equal 10.     # initial temperature
+variable tf     equal 298.15  # equilibrium temperature
+variable p      equal 1.      # equilibrium pressure
+variable cutoff equal 12.     # For interactions in real space. 
+variable cl     equal 400     # correlation length for averaging
+variable s      equal 5       # sample interval for averaging
+variable equi   equal 4000    # Equilibrium steps
+
+# PBC 
+boundary p p p
+
+# Force field setup.
+units           real
+atom_style      full
+bond_style      harmonic
+angle_style     harmonic
+dihedral_style  harmonic
+improper_style  harmonic
+pair_style      lj/cut/coul/cut ${cutoff} 
+special_bonds lj 0.0 0.0 0.5 coul 0.0 0.0 1.0 angle yes dihedral yes
+
+# Neighbour list.
+neighbor        2.0 bin
+neigh_modify    check yes
+
+# Create a random seed.
+shell dd if=/dev/urandom of=/tmp/random_number count=2 bs=1
+shell od -An -t dI /tmp/random_number > /tmp/seed
+variable s1 file /tmp/seed
+variable s2 equal abs(v_s1)
+print "Seed ${s2}"
+variable r1 equal random(10000,1000000,${s2})

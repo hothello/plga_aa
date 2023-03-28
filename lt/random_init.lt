@@ -1,0 +1,10 @@
+write("In Init"){
+ 
+ # Create a random seed.
+ shell dd if=/dev/urandom of=/tmp/random_number count=2 bs=1
+ shell od -An -t dI /tmp/random_number > /tmp/seed
+ variable s1 file /tmp/seed
+ variable s2 equal abs(v_s1)
+ print "Seed \$\{s2\}"
+ variable r1 equal random(10000,1000000,\$\{s2\})
+}

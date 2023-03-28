@@ -1,0 +1,74 @@
+# 90 Chains of PLGA randomly oriented on a cubic grid.
+# Compress the system using short NPT runs.
+#
+# moltemplate.sh -overlay-all -vmd plga_amor_02.lt
+
+# METADATA: the input variables that control the simulation.
+write_once("In Init"){
+ # Simulation name.
+ variable run string plga_amor_02
+ echo            log
+ log   \$\{run\}.log
+
+ # Input variables.
+ variable ts     equal 2       # timestep
+ variable steps  equal 50      # Compression steps
+ variable ti     equal 10.     # initial temperature
+ variable tf     equal 298.15  # equilibrium temperature
+ variable p      equal 1.      # equilibrium pressure
+ variable cutoff equal 12.     # For interactions in real space.
+ variable cl     equal 400     # correlation length for averaging
+ variable s      equal 5       # sample interval for averaging
+ variable equi   equal 4000    # Equilibrium steps
+
+ # PBC
+ boundary p p p
+}
+
+# Import the force field definition.
+import ../lt/aa_atb.lt
+ff = new atb_long
+
+# Create the molecules. First, load the force field definition
+# of PLGA. Then, read a LT file where the chains are created
+# and arranged on a cubic grid randomly oriented.
+import ../atb/GROMOS_54A7_ATB.lt
+import ../atb/plga_aa_012.lt
+import plga_amor_01.rand
+
+# Define the task to execute.
+import ../lt/aa_tasks.lt
+task = default               # It includes the density and other standard thermodynamic output
+
+# Create a custom compression protocol using the Nose-Hoover barostat/thermostat.
+write("In Run"){
+
+ # Derived variables.
+ # thermo interval.
+ variable d       equal \$\{cl\}*\$s
+ # dump interval ("sample interval" frames).
+ variable dcycle  equal \$\{prod\}/\$s
+ variable tcouple equal \$\{ts\}*100
+ variable pcouple equal \$\{ts\}*1000
+}
+
+# Define the computes and output, based on the task.
+co = new task
+
+write("In Run"){
+
+  fix NPT all npt temp \$\{ti\} \$\{ti\} \$\{tcouple\} aniso \$p \$p \$\{pcouple\}
+  label    cycle1
+  variable i loop \$\{steps\}
+    print "*** Shrinking step \$i/\$\{steps\} ***"
+    run    \$\{equi\}
+    next   i
+  jump SELF cycle1
+  variable i delete
+  unfix NPT
+  fix NPT all npt temp \$\{ti\} \$\{tf\} \$\{tcouple\} aniso \$p \$p \$\{pcouple\}
+  run    \$\{equi\}
+}
+
+# Save the output.
+run = new aa_save

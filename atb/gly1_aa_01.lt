@@ -1,0 +1,48 @@
+# All-Atom model of the molecule: Glycoloc Acid Monomer.
+# Model adapted from GROMOS-ATB atomistic FF.
+#
+# Starting monomer of a polymer.
+#
+# Version: 1.0
+# Date:    9 October 2020
+#
+# 
+gly1 inherits GROMOS_54A7_ATB {
+        write("Data Atoms"){
+            $atom:H7     $mol:... @atom:HS14    0.40  -1.370145     -1.318549     -0.004003
+            $atom:O3     $mol:... @atom:OE     -0.46  -0.422955008  -1.245762617   0.001798693
+            $atom:C5     $mol:... @atom:CPos    0.64  -0.072858329   0.053536236  -0.006967409
+            $atom:O4     $mol:... @atom:OEOpt  -0.50  -0.856806378   0.981621353   0.002208146
+            $atom:C4     $mol:... @atom:CPos    0.14   1.433622910   0.237120295   0.001679023
+            $atom:H5     $mol:... @atom:HC      0.09   1.899179099  -0.444689642  -0.717572094
+            $atom:H6     $mol:... @atom:HC      0.09   1.791237806  -0.052177647   1.003600795
+        }
+        write("Data Bonds"){
+            $bond:b1      @bond:g45    $atom:O3     $atom:C5
+            $bond:b2      @bond:g119   $atom:C5     $atom:O4
+            $bond:b3      @bond:g26    $atom:C5     $atom:C4
+            $bond:b4      @bond:g3     $atom:C4     $atom:H5
+            $bond:b5      @bond:g3     $atom:C4     $atom:H6
+            $bond:b6      @bond:g60    $atom:O3     $atom:H7
+        }
+        write("Data Angles"){
+            $angle:a1      @angle:g33    $atom:O3     $atom:C5     $atom:O4
+            $angle:a2      @angle:g15    $atom:O3     $atom:C5     $atom:C4
+            $angle:a3      @angle:g30    $atom:O4     $atom:C5     $atom:C4
+            $angle:a4      @angle:g51    $atom:C5     $atom:C4     $atom:H5
+            $angle:a5      @angle:g51    $atom:C5     $atom:C4     $atom:H6
+            $angle:a6      @angle:g43    $atom:H5     $atom:C4     $atom:H6
+            $angle:a7      @angle:g12    $atom:C5     $atom:O3     $atom:H7
+        }
+        write("Data Dihedrals"){
+            $dihedral:d1      @dihedral:glj14  $atom:O3     $atom:C5     $atom:C4     $atom:H5
+            $dihedral:d2      @dihedral:glj14  $atom:O3     $atom:C5     $atom:C4     $atom:H6
+            $dihedral:d3      @dihedral:glj14  $atom:O4     $atom:C5     $atom:C4     $atom:H5
+            $dihedral:d4      @dihedral:glj14  $atom:O4     $atom:C5     $atom:C4     $atom:H6
+            $dihedral:d5      @dihedral:g12    $atom:C4     $atom:C5     $atom:O3     $atom:H7
+            $dihedral:d6      @dihedral:glj14  $atom:O4     $atom:C5     $atom:O3     $atom:H7
+        }
+        write("Data Impropers"){
+            $improper:i1      @improper:g1     $atom:C5     $atom:O3     $atom:O4     $atom:C4
+        }
+}

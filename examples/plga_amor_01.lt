@@ -1,0 +1,44 @@
+# 90 Chains of PLGA randomly oriented on a cubic grid.
+#
+# moltemplate.sh -overlay-all plga_amor_01.lt 
+
+# METADATA: the input variables that control the simulation.
+write_once("In Init"){
+ # Simulation name. 
+ variable run string plga_amor_01
+ echo            log
+ log   \$\{run\}.log
+
+ # Input variables.
+ variable ts     equal 2       # timestep
+ variable steps  equal 49      # Compression steps
+ variable ti     equal 10.     # initial temperature
+ variable tf     equal 298.15  # equilibrium temperature
+ variable p      equal 1.      # equilibrium pressure
+ variable cutoff equal 12.     # For interactions in real space. 
+ variable cl     equal 400     # correlation length for averaging
+ variable s      equal 5       # sample interval for averaging
+ variable equi   equal 4000    # Equilibrium steps
+
+ # PBC 
+ boundary p p p
+}
+
+# Import the force field definition.
+# Do not use the long range solver, as the density is imposed in
+# the compression protocol.
+import ../lt/aa_atb.lt
+ff = new atb_cut
+
+# Create the molecules. First, load the force field definition
+# of PLGA. Then, read a LT file where the chains are created
+# and arranged on a cubic grid randomly oriented.
+import ../atb/GROMOS_54A7_ATB.lt
+import ../atb/plga_aa_012.lt
+import plga_amor_01.rand
+
+# Define the task to execute.
+import ../lt/aa_tasks.lt
+task = default               # It includes the density and other standard thermodynamic output
+run[0] = new aa_compression
+run[1] = new aa_save
